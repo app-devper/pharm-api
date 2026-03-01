@@ -9,11 +9,11 @@ import (
 type DrugClassification string
 
 const (
-	DrugOTC        DrugClassification = "OTC"       // ยาสามัญประจำบ้าน
-	DrugDangerous  DrugClassification = "DANGEROUS"  // ยาอันตราย (ข.ย. 9)
-	DrugControlled DrugClassification = "CONTROLLED" // ยาควบคุมพิเศษ (ข.ย. 10)
-	DrugPsycho     DrugClassification = "PSYCHO"     // วัตถุออกฤทธิ์ฯ (ข.ย. 11)
-	DrugNarcotic   DrugClassification = "NARCOTIC"   // ยาเสพติดให้โทษประเภท 3 (ข.ย. 12)
+	DrugOTC        DrugClassification = "OTC"        // ยาสามัญประจำบ้าน
+	DrugDangerous  DrugClassification = "DANGEROUS"  // ยาอันตราย (ข.ย. 10)
+	DrugControlled DrugClassification = "CONTROLLED" // ยาควบคุมพิเศษ (ข.ย. 11)
+	DrugPsycho     DrugClassification = "PSYCHO"     // วัตถุออกฤทธิ์ฯ (ข.ย. 12)
+	DrugNarcotic   DrugClassification = "NARCOTIC"   // ยาเสพติดให้โทษประเภท 3 (ข.ย. 13)
 )
 
 type Product struct {
@@ -34,6 +34,7 @@ type Product struct {
 	Contraindications  string             `json:"contraindications" bson:"contraindications"`
 	StorageCondition   string             `json:"storageCondition" bson:"storageCondition"`
 	Interactions       []string           `json:"interactions" bson:"interactions"`
+	ReportTypes        []string           `json:"reportTypes" bson:"reportTypes"`
 	Status             string             `json:"status" bson:"status"`
 	CreatedBy          string             `json:"createdBy" bson:"createdBy"`
 	CreatedDate        time.Time          `json:"createdDate" bson:"createdDate"`

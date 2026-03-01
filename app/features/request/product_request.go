@@ -1,7 +1,7 @@
 package request
 
 type CreateProductRequest struct {
-	Barcode            string   `json:"barcode" binding:"required"`
+	Barcode            string   `json:"barcode"`
 	TradeName          string   `json:"tradeName" binding:"required"`
 	GenericName        string   `json:"genericName"`
 	DrugClassification string   `json:"drugClassification" binding:"required"`
@@ -16,6 +16,7 @@ type CreateProductRequest struct {
 	Contraindications  string   `json:"contraindications"`
 	StorageCondition   string   `json:"storageCondition"`
 	Interactions       []string `json:"interactions"`
+	ReportTypes        []string `json:"reportTypes"`
 }
 
 type UpdateProductRequest struct {
@@ -33,4 +34,5 @@ type UpdateProductRequest struct {
 	Contraindications  string   `json:"contraindications"`
 	StorageCondition   string   `json:"storageCondition"`
 	Interactions       []string `json:"interactions"`
+	ReportTypes        []string `json:"reportTypes"`
 }

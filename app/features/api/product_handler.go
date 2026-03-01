@@ -47,6 +47,7 @@ func (h *ProductHandler) Create(ctx *gin.Context) {
 		Contraindications:  req.Contraindications,
 		StorageCondition:   req.StorageCondition,
 		Interactions:       req.Interactions,
+		ReportTypes:        req.ReportTypes,
 	}
 
 	result, err := h.uc.Create(ctx, product, userID)
@@ -157,6 +158,9 @@ func (h *ProductHandler) Update(ctx *gin.Context) {
 	}
 	if req.Interactions != nil {
 		existing.Interactions = req.Interactions
+	}
+	if req.ReportTypes != nil {
+		existing.ReportTypes = req.ReportTypes
 	}
 
 	if err := h.uc.Update(ctx, existing, userID); err != nil {

@@ -10,7 +10,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/sirupsen/logrus v1.9.4
 	go.mongodb.org/mongo-driver v1.17.9
-	golang.org/x/crypto v0.48.0
+	golang.org/x/crypto v0.48.0 // indirect
 )
 
 require (

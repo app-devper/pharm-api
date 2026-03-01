@@ -136,10 +136,11 @@ func (r Routes) StartGin() {
 		reports := auth.Group("/reports")
 		reports.Use(middlewares.RequireAuthorization("SUPER", "ADMIN"))
 		{
-			reports.GET("/ky9", reportHandler.GetKY9)
-			reports.GET("/ky10", reportHandler.GetKY10)
-			reports.GET("/ky11", reportHandler.GetKY11)
-			reports.GET("/ky12", reportHandler.GetKY12)
+			reports.GET("/ky9", reportHandler.GetKY9)   // บัญชีซื้อยา (receive)
+			reports.GET("/ky10", reportHandler.GetKY10) // ขายยาอันตราย
+			reports.GET("/ky11", reportHandler.GetKY11) // ขายยาควบคุมพิเศษ
+			reports.GET("/ky12", reportHandler.GetKY12) // วัตถุออกฤทธิ์ฯ
+			reports.GET("/ky13", reportHandler.GetKY13) // ยาเสพติดให้โทษ ประเภท 3
 		}
 
 		// Settings (Admin only)

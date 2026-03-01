@@ -7,19 +7,20 @@ import (
 )
 
 type Batch struct {
-	ID          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	ClientID    string             `json:"clientId" bson:"clientId"`
-	ProductID   primitive.ObjectID `json:"productId" bson:"productId"`
-	LotNumber   string             `json:"lotNumber" bson:"lotNumber"`
-	ExpiryDate  time.Time          `json:"expiryDate" bson:"expiryDate"`
-	Quantity    int                `json:"quantity" bson:"quantity"`
-	CostPrice   float64            `json:"costPrice" bson:"costPrice"`
-	SupplierID  primitive.ObjectID `json:"supplierId" bson:"supplierId"`
-	ReceivedAt  time.Time          `json:"receivedAt" bson:"receivedAt"`
-	CreatedBy   string             `json:"createdBy" bson:"createdBy"`
-	CreatedDate time.Time          `json:"createdDate" bson:"createdDate"`
-	UpdatedBy   string             `json:"updatedBy" bson:"updatedBy"`
-	UpdatedDate time.Time          `json:"updatedDate" bson:"updatedDate"`
+	ID           primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	ClientID     string             `json:"clientId" bson:"clientId"`
+	ProductID    primitive.ObjectID `json:"productId" bson:"productId"`
+	LotNumber    string             `json:"lotNumber" bson:"lotNumber"`
+	ExpiryDate   time.Time          `json:"expiryDate" bson:"expiryDate"`
+	Quantity     int                `json:"quantity" bson:"quantity"`
+	CostPrice    float64            `json:"costPrice" bson:"costPrice"`
+	SupplierID   primitive.ObjectID `json:"supplierId" bson:"supplierId"`
+	SupplierName string             `json:"supplierName" bson:"supplierName"`
+	ReceivedAt   time.Time          `json:"receivedAt" bson:"receivedAt"`
+	CreatedBy    string             `json:"createdBy" bson:"createdBy"`
+	CreatedDate  time.Time          `json:"createdDate" bson:"createdDate"`
+	UpdatedBy    string             `json:"updatedBy" bson:"updatedBy"`
+	UpdatedDate  time.Time          `json:"updatedDate" bson:"updatedDate"`
 }
 
 type StockMovement struct {

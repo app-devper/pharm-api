@@ -54,13 +54,14 @@ func (h *BatchHandler) Create(ctx *gin.Context) {
 	}
 
 	batch := &model.Batch{
-		ClientID:   clientID,
-		ProductID:  productOID,
-		LotNumber:  req.LotNumber,
-		ExpiryDate: expiryDate,
-		Quantity:   req.Quantity,
-		CostPrice:  req.CostPrice,
-		SupplierID: supplierOID,
+		ClientID:     clientID,
+		ProductID:    productOID,
+		LotNumber:    req.LotNumber,
+		ExpiryDate:   expiryDate,
+		Quantity:     req.Quantity,
+		CostPrice:    req.CostPrice,
+		SupplierID:   supplierOID,
+		SupplierName: req.SupplierName,
 	}
 
 	result, err := h.uc.ReceiveGoods(ctx, batch, userID)
