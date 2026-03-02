@@ -137,6 +137,12 @@ func (r *batchRepo) UpdateQuantity(ctx context.Context, id primitive.ObjectID, q
 	return err
 }
 
+func (r *batchRepo) Update(ctx context.Context, id primitive.ObjectID, update map[string]interface{}) error {
+	update["updatedDate"] = time.Now()
+	_, err := r.col.UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": update})
+	return err
+}
+
 func (r *batchRepo) Delete(ctx context.Context, id primitive.ObjectID) error {
 	_, err := r.col.DeleteOne(ctx, bson.M{"_id": id})
 	return err

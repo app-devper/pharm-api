@@ -15,5 +15,6 @@ type BatchRepository interface {
 	FindExpiringBatches(ctx context.Context, clientID string, daysAhead int) ([]model.Batch, error)
 	FindLowStock(ctx context.Context, clientID string) ([]model.Batch, error)
 	UpdateQuantity(ctx context.Context, id primitive.ObjectID, quantity int) error
+	Update(ctx context.Context, id primitive.ObjectID, update map[string]interface{}) error
 	Delete(ctx context.Context, id primitive.ObjectID) error
 }

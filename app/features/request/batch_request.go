@@ -9,3 +9,11 @@ type CreateBatchRequest struct {
 	SupplierID   string  `json:"supplierId"`
 	SupplierName string  `json:"supplierName"`
 }
+
+type UpdateBatchRequest struct {
+	LotNumber    string  `json:"lotNumber"`
+	ExpiryDate   string  `json:"expiryDate"`
+	Quantity     int     `json:"quantity"`
+	CostPrice    float64 `json:"costPrice"`
+	SupplierName string  `json:"supplierName"`
+}

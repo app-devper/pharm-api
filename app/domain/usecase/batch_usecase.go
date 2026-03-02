@@ -70,6 +70,14 @@ func (u *BatchUsecase) UpdateQuantity(ctx context.Context, id string, quantity i
 	return u.batchRepo.UpdateQuantity(ctx, oid, quantity)
 }
 
+func (u *BatchUsecase) Update(ctx context.Context, id string, update map[string]interface{}) error {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+	return u.batchRepo.Update(ctx, oid, update)
+}
+
 func (u *BatchUsecase) Delete(ctx context.Context, id string) error {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {

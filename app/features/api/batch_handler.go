@@ -106,6 +106,49 @@ func (h *BatchHandler) GetLowStock(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, batches)
 }
 
+func (h *BatchHandler) Update(ctx *gin.Context) {
+	id := ctx.Param("id")
+	var req request.UpdateBatchRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		errs.Response(ctx, http.StatusBadRequest, errs.New(errs.ErrBadRequest, err.Error()))
+		return
+	}
+
+	update := make(map[string]interface{})
+	if req.LotNumber != "" {
+		update["lotNumber"] = req.LotNumber
+	}
+	if req.ExpiryDate != "" {
+		expiryDate, err := time.Parse("2006-01-02", req.ExpiryDate)
+		if err != nil {
+			errs.Response(ctx, http.StatusBadRequest, errs.New(errs.ErrBadRequest, "invalid expiry date, use YYYY-MM-DD"))
+			return
+		}
+		update["expiryDate"] = expiryDate
+	}
+	if req.Quantity > 0 {
+		update["quantity"] = req.Quantity
+	}
+	if req.CostPrice > 0 {
+		update["costPrice"] = req.CostPrice
+	}
+	if req.SupplierName != "" {
+		update["supplierName"] = req.SupplierName
+	}
+
+	if len(update) == 0 {
+		errs.Response(ctx, http.StatusBadRequest, errs.New(errs.ErrBadRequest, "no fields to update"))
+		return
+	}
+
+	if err := h.uc.Update(ctx, id, update); err != nil {
+		errs.Response(ctx, http.StatusInternalServerError, errs.New(errs.ErrInternal, err.Error()))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "updated"})
+}
+
 func (h *BatchHandler) Delete(ctx *gin.Context) {
 	id := ctx.Param("id")
 	if err := h.uc.Delete(ctx, id); err != nil {

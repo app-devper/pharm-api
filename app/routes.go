@@ -115,6 +115,7 @@ func (r Routes) StartGin() {
 			batches.GET("/product/:productId", batchHandler.GetByProductID)
 			batches.GET("/expiring", batchHandler.GetExpiringBatches)
 			batches.GET("/low-stock", batchHandler.GetLowStock)
+			batches.PUT("/:id", batchHandler.Update)
 			batches.DELETE("/:id", batchHandler.Delete)
 		}
 
