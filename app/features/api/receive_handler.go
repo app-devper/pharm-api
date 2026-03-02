@@ -38,7 +38,13 @@ func (h *ReceiveHandler) Create(ctx *gin.Context) {
 	userID := ctx.GetString(middlewares.SessionId)
 	c := ctx.Request.Context()
 
-	var items []model.GoodsReceiptItem
+	// Phase 1: Validate all items and build data (no DB writes)
+	type validatedItem struct {
+		receiptItem model.GoodsReceiptItem
+		batch       *model.Batch
+	}
+
+	var validated []validatedItem
 	var totalCost float64
 
 	for i, item := range req.Items {
@@ -64,33 +70,40 @@ func (h *ReceiveHandler) Create(ctx *gin.Context) {
 			}
 		}
 
-		items = append(items, model.GoodsReceiptItem{
-			ProductID:  productOID,
-			TradeName:  tradeName,
-			LotNumber:  item.LotNumber,
-			ExpiryDate: expiryDate,
-			Quantity:   item.Quantity,
-			CostPrice:  item.CostPrice,
+		validated = append(validated, validatedItem{
+			receiptItem: model.GoodsReceiptItem{
+				ProductID:  productOID,
+				TradeName:  tradeName,
+				LotNumber:  item.LotNumber,
+				ExpiryDate: expiryDate,
+				Quantity:   item.Quantity,
+				CostPrice:  item.CostPrice,
+			},
+			batch: &model.Batch{
+				ProductID:    productOID,
+				LotNumber:    item.LotNumber,
+				ExpiryDate:   expiryDate,
+				Quantity:     item.Quantity,
+				CostPrice:    item.CostPrice,
+				SupplierName: req.SupplierName,
+			},
 		})
 
 		totalCost += item.CostPrice * float64(item.Quantity)
+	}
 
-		// Create the batch
-		batch := &model.Batch{
-			ProductID:    productOID,
-			LotNumber:    item.LotNumber,
-			ExpiryDate:   expiryDate,
-			Quantity:     item.Quantity,
-			CostPrice:    item.CostPrice,
-			SupplierName: req.SupplierName,
-		}
-		_, err = h.batchUC.ReceiveGoods(c, batch, userID)
+	// Phase 2: All validated — now write batches
+	items := make([]model.GoodsReceiptItem, 0, len(validated))
+	for i, v := range validated {
+		_, err := h.batchUC.ReceiveGoods(c, v.batch, userID)
 		if err != nil {
 			errs.Response(ctx, http.StatusInternalServerError, errs.New(errs.ErrInternal, fmt.Sprintf("item %d: failed to create batch: %s", i+1, err.Error())))
 			return
 		}
+		items = append(items, v.receiptItem)
 	}
 
+	// Phase 3: Insert goods receipt
 	receipt := model.GoodsReceipt{
 		ReceiptNumber: h.generateReceiptNumber(c),
 		SupplierName:  req.SupplierName,

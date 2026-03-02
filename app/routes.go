@@ -146,8 +146,9 @@ func (r Routes) StartGin() {
 			reports.GET("/ky13", reportHandler.GetKY13) // ยาเสพติดให้โทษ ประเภท 3
 		}
 
-		// Receives (Goods Receipts)
+		// Receives (Goods Receipts) - Admin only
 		receives := auth.Group("/receives")
+		receives.Use(middlewares.RequireAuthorization("SUPER", "ADMIN"))
 		{
 			receives.POST("", receiveHandler.Create)
 			receives.GET("", receiveHandler.GetAll)
