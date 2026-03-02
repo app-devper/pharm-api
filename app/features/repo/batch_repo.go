@@ -28,6 +28,21 @@ func (r *batchRepo) Create(ctx context.Context, batch *model.Batch) (*model.Batc
 	return batch, nil
 }
 
+func (r *batchRepo) FindAll(ctx context.Context) ([]model.Batch, error) {
+	opts := options.Find().SetSort(bson.D{{Key: "expiryDate", Value: 1}})
+	cursor, err := r.col.Find(ctx, bson.M{}, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var batches []model.Batch
+	if err := cursor.All(ctx, &batches); err != nil {
+		return nil, err
+	}
+	return batches, nil
+}
+
 func (r *batchRepo) FindByID(ctx context.Context, id primitive.ObjectID) (*model.Batch, error) {
 	var batch model.Batch
 	err := r.col.FindOne(ctx, bson.M{"_id": id}).Decode(&batch)
@@ -74,11 +89,10 @@ func (r *batchRepo) FindByProductIDFEFO(ctx context.Context, productID primitive
 	return batches, nil
 }
 
-func (r *batchRepo) FindExpiringBatches(ctx context.Context, clientID string, daysAhead int) ([]model.Batch, error) {
+func (r *batchRepo) FindExpiringBatches(ctx context.Context, daysAhead int) ([]model.Batch, error) {
 	now := time.Now()
 	future := now.AddDate(0, 0, daysAhead)
 	filter := bson.M{
-		"clientId": clientID,
 		"quantity": bson.M{"$gt": 0},
 		"expiryDate": bson.M{
 			"$gt":  now,
@@ -100,9 +114,9 @@ func (r *batchRepo) FindExpiringBatches(ctx context.Context, clientID string, da
 	return batches, nil
 }
 
-func (r *batchRepo) FindLowStock(ctx context.Context, clientID string) ([]model.Batch, error) {
+func (r *batchRepo) FindLowStock(ctx context.Context) ([]model.Batch, error) {
 	pipeline := mongo.Pipeline{
-		{{Key: "$match", Value: bson.M{"clientId": clientID, "quantity": bson.M{"$gt": 0}}}},
+		{{Key: "$match", Value: bson.M{"quantity": bson.M{"$gt": 0}}}},
 		{{Key: "$group", Value: bson.M{
 			"_id":        "$productId",
 			"totalStock": bson.M{"$sum": "$quantity"},

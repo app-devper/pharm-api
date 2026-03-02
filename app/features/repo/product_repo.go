@@ -38,8 +38,8 @@ func (r *productRepo) FindByID(ctx context.Context, id primitive.ObjectID) (*mod
 	return &product, nil
 }
 
-func (r *productRepo) FindByClientID(ctx context.Context, clientID string, search string, page int, limit int) ([]model.Product, int64, error) {
-	filter := bson.M{"clientId": clientID, "status": "ACTIVE"}
+func (r *productRepo) FindAll(ctx context.Context, search string, page int, limit int) ([]model.Product, int64, error) {
+	filter := bson.M{"status": "ACTIVE"}
 	if search != "" {
 		escaped := regexp.QuoteMeta(search)
 		filter["$or"] = []bson.M{
@@ -70,9 +70,9 @@ func (r *productRepo) FindByClientID(ctx context.Context, clientID string, searc
 	return products, total, nil
 }
 
-func (r *productRepo) FindByBarcode(ctx context.Context, clientID string, barcode string) (*model.Product, error) {
+func (r *productRepo) FindByBarcode(ctx context.Context, barcode string) (*model.Product, error) {
 	var product model.Product
-	err := r.col.FindOne(ctx, bson.M{"clientId": clientID, "barcode": barcode}).Decode(&product)
+	err := r.col.FindOne(ctx, bson.M{"barcode": barcode}).Decode(&product)
 	if err != nil {
 		return nil, err
 	}

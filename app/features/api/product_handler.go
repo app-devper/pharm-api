@@ -27,11 +27,9 @@ func (h *ProductHandler) Create(ctx *gin.Context) {
 		return
 	}
 
-	clientID := ctx.GetString(middlewares.ClientId)
 	userID := ctx.GetString(middlewares.SessionId)
 
 	product := &model.Product{
-		ClientID:           clientID,
 		Barcode:            req.Barcode,
 		TradeName:          req.TradeName,
 		GenericName:        req.GenericName,
@@ -70,12 +68,11 @@ func (h *ProductHandler) GetByID(ctx *gin.Context) {
 }
 
 func (h *ProductHandler) GetAll(ctx *gin.Context) {
-	clientID := ctx.GetString(middlewares.ClientId)
 	search := ctx.Query("search")
 	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(ctx.DefaultQuery("limit", "20"))
 
-	products, total, err := h.uc.GetByClientID(ctx, clientID, search, page, limit)
+	products, total, err := h.uc.GetAll(ctx, search, page, limit)
 	if err != nil {
 		errs.Response(ctx, http.StatusInternalServerError, errs.New(errs.ErrInternal, err.Error()))
 		return
@@ -90,10 +87,9 @@ func (h *ProductHandler) GetAll(ctx *gin.Context) {
 }
 
 func (h *ProductHandler) GetByBarcode(ctx *gin.Context) {
-	clientID := ctx.GetString(middlewares.ClientId)
 	barcode := ctx.Param("barcode")
 
-	product, err := h.uc.GetByBarcode(ctx, clientID, barcode)
+	product, err := h.uc.GetByBarcode(ctx, barcode)
 	if err != nil {
 		errs.Response(ctx, http.StatusNotFound, errs.New(errs.ErrNotFound, "product not found"))
 		return

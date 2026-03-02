@@ -33,8 +33,8 @@ func (u *PatientUsecase) GetByID(ctx context.Context, id string) (*model.Patient
 	return u.repo.FindByID(ctx, oid)
 }
 
-func (u *PatientUsecase) GetByClientID(ctx context.Context, clientID string, search string, page int, limit int) ([]model.Patient, int64, error) {
-	return u.repo.FindByClientID(ctx, clientID, search, page, limit)
+func (u *PatientUsecase) GetAll(ctx context.Context, search string, page int, limit int) ([]model.Patient, int64, error) {
+	return u.repo.FindAll(ctx, search, page, limit)
 }
 
 func (u *PatientUsecase) Update(ctx context.Context, patient *model.Patient, userID string) error {

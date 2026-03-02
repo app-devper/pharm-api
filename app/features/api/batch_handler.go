@@ -22,6 +22,15 @@ func NewBatchHandler(uc *usecase.BatchUsecase) *BatchHandler {
 	return &BatchHandler{uc: uc}
 }
 
+func (h *BatchHandler) GetAll(ctx *gin.Context) {
+	batches, err := h.uc.GetAll(ctx)
+	if err != nil {
+		errs.Response(ctx, http.StatusInternalServerError, errs.New(errs.ErrInternal, err.Error()))
+		return
+	}
+	ctx.JSON(http.StatusOK, batches)
+}
+
 func (h *BatchHandler) Create(ctx *gin.Context) {
 	var req request.CreateBatchRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -29,7 +38,6 @@ func (h *BatchHandler) Create(ctx *gin.Context) {
 		return
 	}
 
-	clientID := ctx.GetString(middlewares.ClientId)
 	userID := ctx.GetString(middlewares.SessionId)
 
 	productOID, err := primitive.ObjectIDFromHex(req.ProductID)
@@ -54,7 +62,6 @@ func (h *BatchHandler) Create(ctx *gin.Context) {
 	}
 
 	batch := &model.Batch{
-		ClientID:     clientID,
 		ProductID:    productOID,
 		LotNumber:    req.LotNumber,
 		ExpiryDate:   expiryDate,
@@ -84,10 +91,9 @@ func (h *BatchHandler) GetByProductID(ctx *gin.Context) {
 }
 
 func (h *BatchHandler) GetExpiringBatches(ctx *gin.Context) {
-	clientID := ctx.GetString(middlewares.ClientId)
 	days, _ := strconv.Atoi(ctx.DefaultQuery("days", "180"))
 
-	batches, err := h.uc.GetExpiringBatches(ctx, clientID, days)
+	batches, err := h.uc.GetExpiringBatches(ctx, days)
 	if err != nil {
 		errs.Response(ctx, http.StatusInternalServerError, errs.New(errs.ErrInternal, err.Error()))
 		return
@@ -96,9 +102,7 @@ func (h *BatchHandler) GetExpiringBatches(ctx *gin.Context) {
 }
 
 func (h *BatchHandler) GetLowStock(ctx *gin.Context) {
-	clientID := ctx.GetString(middlewares.ClientId)
-
-	batches, err := h.uc.GetLowStock(ctx, clientID)
+	batches, err := h.uc.GetLowStock(ctx)
 	if err != nil {
 		errs.Response(ctx, http.StatusInternalServerError, errs.New(errs.ErrInternal, err.Error()))
 		return

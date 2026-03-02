@@ -27,6 +27,10 @@ func (u *BatchUsecase) ReceiveGoods(ctx context.Context, batch *model.Batch, use
 	return u.batchRepo.Create(ctx, batch)
 }
 
+func (u *BatchUsecase) GetAll(ctx context.Context) ([]model.Batch, error) {
+	return u.batchRepo.FindAll(ctx)
+}
+
 func (u *BatchUsecase) GetByID(ctx context.Context, id string) (*model.Batch, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -51,15 +55,15 @@ func (u *BatchUsecase) GetByProductIDFEFO(ctx context.Context, productID string)
 	return u.batchRepo.FindByProductIDFEFO(ctx, oid)
 }
 
-func (u *BatchUsecase) GetExpiringBatches(ctx context.Context, clientID string, daysAhead int) ([]model.Batch, error) {
+func (u *BatchUsecase) GetExpiringBatches(ctx context.Context, daysAhead int) ([]model.Batch, error) {
 	if daysAhead <= 0 {
 		daysAhead = 180
 	}
-	return u.batchRepo.FindExpiringBatches(ctx, clientID, daysAhead)
+	return u.batchRepo.FindExpiringBatches(ctx, daysAhead)
 }
 
-func (u *BatchUsecase) GetLowStock(ctx context.Context, clientID string) ([]model.Batch, error) {
-	return u.batchRepo.FindLowStock(ctx, clientID)
+func (u *BatchUsecase) GetLowStock(ctx context.Context) ([]model.Batch, error) {
+	return u.batchRepo.FindLowStock(ctx)
 }
 
 func (u *BatchUsecase) UpdateQuantity(ctx context.Context, id string, quantity int) error {

@@ -165,8 +165,8 @@ func (u *SaleUsecase) GetByID(ctx context.Context, id string) (*model.Sale, erro
 	return u.saleRepo.FindByID(ctx, oid)
 }
 
-func (u *SaleUsecase) GetByClientID(ctx context.Context, clientID string, page int, limit int) ([]model.Sale, int64, error) {
-	return u.saleRepo.FindByClientID(ctx, clientID, page, limit)
+func (u *SaleUsecase) GetAll(ctx context.Context, page int, limit int) ([]model.Sale, int64, error) {
+	return u.saleRepo.FindAll(ctx, page, limit)
 }
 
 func (u *SaleUsecase) GetByPatientID(ctx context.Context, patientID string, page int, limit int) ([]model.Sale, int64, error) {

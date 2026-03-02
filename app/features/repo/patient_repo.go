@@ -38,17 +38,17 @@ func (r *patientRepo) FindByID(ctx context.Context, id primitive.ObjectID) (*mod
 	return &patient, nil
 }
 
-func (r *patientRepo) FindByIDCard(ctx context.Context, clientID string, idCard string) (*model.Patient, error) {
+func (r *patientRepo) FindByIDCard(ctx context.Context, idCard string) (*model.Patient, error) {
 	var patient model.Patient
-	err := r.col.FindOne(ctx, bson.M{"clientId": clientID, "idCard": idCard}).Decode(&patient)
+	err := r.col.FindOne(ctx, bson.M{"idCard": idCard}).Decode(&patient)
 	if err != nil {
 		return nil, err
 	}
 	return &patient, nil
 }
 
-func (r *patientRepo) FindByClientID(ctx context.Context, clientID string, search string, page int, limit int) ([]model.Patient, int64, error) {
-	filter := bson.M{"clientId": clientID}
+func (r *patientRepo) FindAll(ctx context.Context, search string, page int, limit int) ([]model.Patient, int64, error) {
+	filter := bson.M{}
 	if search != "" {
 		escaped := regexp.QuoteMeta(search)
 		filter["$or"] = []bson.M{

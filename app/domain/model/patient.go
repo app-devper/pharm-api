@@ -14,7 +14,6 @@ type Allergy struct {
 
 type Patient struct {
 	ID              primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	ClientID        string             `json:"clientId" bson:"clientId"`
 	IDCard          string             `json:"idCard" bson:"idCard"`
 	FirstName       string             `json:"firstName" bson:"firstName"`
 	LastName        string             `json:"lastName" bson:"lastName"`

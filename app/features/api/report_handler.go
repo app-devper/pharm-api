@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"pharmacy-pos/api/app/core/errs"
 	"pharmacy-pos/api/app/domain/model"
-	"pharmacy-pos/api/middlewares"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -66,7 +65,6 @@ type receiveRow struct {
 }
 
 func (h *ReportHandler) getSaleReport(ctx *gin.Context, reportKey string) {
-	clientID := ctx.GetString(middlewares.ClientId)
 	c := ctx.Request.Context()
 
 	fromStr := ctx.DefaultQuery("from", time.Now().AddDate(0, -1, 0).Format("2006-01-02"))
@@ -85,7 +83,7 @@ func (h *ReportHandler) getSaleReport(ctx *gin.Context, reportKey string) {
 	to = to.AddDate(0, 0, 1)
 
 	// Get all products that have this reportKey in their reportTypes array
-	productFilter := bson.M{"clientId": clientID, "reportTypes": reportKey}
+	productFilter := bson.M{"reportTypes": reportKey}
 	productCursor, err := h.db.Collection("products").Find(c, productFilter, options.Find().SetProjection(bson.M{"_id": 1, "tradeName": 1}))
 	if err != nil {
 		errs.Response(ctx, http.StatusInternalServerError, errs.New(errs.ErrInternal, err.Error()))
@@ -116,7 +114,6 @@ func (h *ReportHandler) getSaleReport(ctx *gin.Context, reportKey string) {
 
 	// Find sales containing these products
 	salesFilter := bson.M{
-		"clientId":        clientID,
 		"createdDate":     bson.M{"$gte": from, "$lt": to},
 		"items.productId": bson.M{"$in": productIDs},
 	}
@@ -200,7 +197,6 @@ func (h *ReportHandler) writeCSV(ctx *gin.Context, sales []model.Sale, reportKey
 
 // getReceiveReport returns batches received for products that have the given reportKey in their reportTypes
 func (h *ReportHandler) getReceiveReport(ctx *gin.Context, reportKey string) {
-	clientID := ctx.GetString(middlewares.ClientId)
 	c := ctx.Request.Context()
 
 	fromStr := ctx.DefaultQuery("from", time.Now().AddDate(0, -1, 0).Format("2006-01-02"))
@@ -219,7 +215,7 @@ func (h *ReportHandler) getReceiveReport(ctx *gin.Context, reportKey string) {
 	to = to.AddDate(0, 0, 1)
 
 	// Get products that have this reportKey in their reportTypes array
-	productFilter := bson.M{"clientId": clientID, "reportTypes": reportKey}
+	productFilter := bson.M{"reportTypes": reportKey}
 	productCursor, err := h.db.Collection("products").Find(c, productFilter, options.Find().SetProjection(bson.M{"_id": 1, "tradeName": 1, "genericName": 1, "unit": 1}))
 	if err != nil {
 		errs.Response(ctx, http.StatusInternalServerError, errs.New(errs.ErrInternal, err.Error()))
@@ -265,7 +261,6 @@ func (h *ReportHandler) getReceiveReport(ctx *gin.Context, reportKey string) {
 
 	// Find batches received in the date range for these products
 	batchFilter := bson.M{
-		"clientId":   clientID,
 		"productId":  bson.M{"$in": productIDs},
 		"receivedAt": bson.M{"$gte": from, "$lt": to},
 	}

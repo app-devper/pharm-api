@@ -18,7 +18,6 @@ const (
 
 type Product struct {
 	ID                 primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	ClientID           string             `json:"clientId" bson:"clientId"`
 	Barcode            string             `json:"barcode" bson:"barcode"`
 	TradeName          string             `json:"tradeName" bson:"tradeName"`
 	GenericName        string             `json:"genericName" bson:"genericName"`

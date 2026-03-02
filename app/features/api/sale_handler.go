@@ -28,7 +28,6 @@ func (h *SaleHandler) Create(ctx *gin.Context) {
 		return
 	}
 
-	clientID := ctx.GetString(middlewares.ClientId)
 	userID := ctx.GetString(middlewares.SessionId)
 
 	var patientID primitive.ObjectID
@@ -72,7 +71,6 @@ func (h *SaleHandler) Create(ctx *gin.Context) {
 	}
 
 	sale := &model.Sale{
-		ClientID:       clientID,
 		PatientID:      patientID,
 		Items:          items,
 		Discount:       req.Discount,
@@ -106,11 +104,10 @@ func (h *SaleHandler) GetByID(ctx *gin.Context) {
 }
 
 func (h *SaleHandler) GetAll(ctx *gin.Context) {
-	clientID := ctx.GetString(middlewares.ClientId)
 	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(ctx.DefaultQuery("limit", "20"))
 
-	sales, total, err := h.uc.GetByClientID(ctx, clientID, page, limit)
+	sales, total, err := h.uc.GetAll(ctx, page, limit)
 	if err != nil {
 		errs.Response(ctx, http.StatusInternalServerError, errs.New(errs.ErrInternal, err.Error()))
 		return

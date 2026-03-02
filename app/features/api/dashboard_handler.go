@@ -3,7 +3,6 @@ package api
 import (
 	"net/http"
 	"pharmacy-pos/api/app/core/errs"
-	"pharmacy-pos/api/middlewares"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,7 +19,6 @@ func NewDashboardHandler(db *mongo.Database) *DashboardHandler {
 }
 
 func (h *DashboardHandler) GetStats(ctx *gin.Context) {
-	clientID := ctx.GetString(middlewares.ClientId)
 	c := ctx.Request.Context()
 
 	// Today's sales
@@ -29,7 +27,6 @@ func (h *DashboardHandler) GetStats(ctx *gin.Context) {
 	endOfDay := startOfDay.AddDate(0, 0, 1)
 
 	salesFilter := bson.M{
-		"clientId":    clientID,
 		"createdDate": bson.M{"$gte": startOfDay, "$lt": endOfDay},
 	}
 
@@ -63,15 +60,14 @@ func (h *DashboardHandler) GetStats(ctx *gin.Context) {
 	}
 
 	// Product count
-	productCount, _ := h.db.Collection("products").CountDocuments(c, bson.M{"clientId": clientID, "status": "ACTIVE"})
+	productCount, _ := h.db.Collection("products").CountDocuments(c, bson.M{"status": "ACTIVE"})
 
 	// Patient count
-	patientCount, _ := h.db.Collection("patients").CountDocuments(c, bson.M{"clientId": clientID})
+	patientCount, _ := h.db.Collection("patients").CountDocuments(c, bson.M{})
 
 	// Expiring batches (within 6 months)
 	sixMonths := now.AddDate(0, 6, 0)
 	expiringCount, _ := h.db.Collection("batches").CountDocuments(c, bson.M{
-		"clientId":   clientID,
 		"quantity":   bson.M{"$gt": 0},
 		"expiryDate": bson.M{"$gt": now, "$lte": sixMonths},
 	})
@@ -86,7 +82,6 @@ func (h *DashboardHandler) GetStats(ctx *gin.Context) {
 }
 
 func (h *DashboardHandler) GetExpiringBatches(ctx *gin.Context) {
-	clientID := ctx.GetString(middlewares.ClientId)
 	c := ctx.Request.Context()
 
 	now := time.Now()
@@ -94,7 +89,6 @@ func (h *DashboardHandler) GetExpiringBatches(ctx *gin.Context) {
 
 	pipeline := mongo.Pipeline{
 		{{Key: "$match", Value: bson.M{
-			"clientId":   clientID,
 			"quantity":   bson.M{"$gt": 0},
 			"expiryDate": bson.M{"$gt": now, "$lte": sixMonths},
 		}}},
@@ -133,11 +127,10 @@ func (h *DashboardHandler) GetExpiringBatches(ctx *gin.Context) {
 }
 
 func (h *DashboardHandler) GetLowStock(ctx *gin.Context) {
-	clientID := ctx.GetString(middlewares.ClientId)
 	c := ctx.Request.Context()
 
 	pipeline := mongo.Pipeline{
-		{{Key: "$match", Value: bson.M{"clientId": clientID, "quantity": bson.M{"$gt": 0}}}},
+		{{Key: "$match", Value: bson.M{"quantity": bson.M{"$gt": 0}}}},
 		{{Key: "$group", Value: bson.M{
 			"_id":        "$productId",
 			"totalStock": bson.M{"$sum": "$quantity"},
@@ -177,7 +170,6 @@ func (h *DashboardHandler) GetLowStock(ctx *gin.Context) {
 }
 
 func (h *DashboardHandler) GetSalesSummary(ctx *gin.Context) {
-	clientID := ctx.GetString(middlewares.ClientId)
 	c := ctx.Request.Context()
 
 	now := time.Now()
@@ -185,7 +177,6 @@ func (h *DashboardHandler) GetSalesSummary(ctx *gin.Context) {
 
 	pipeline := mongo.Pipeline{
 		{{Key: "$match", Value: bson.M{
-			"clientId":    clientID,
 			"createdDate": bson.M{"$gte": sevenDaysAgo},
 		}}},
 		{{Key: "$group", Value: bson.M{
@@ -215,7 +206,6 @@ func (h *DashboardHandler) GetSalesSummary(ctx *gin.Context) {
 }
 
 func (h *DashboardHandler) GetMonthlySummary(ctx *gin.Context) {
-	clientID := ctx.GetString(middlewares.ClientId)
 	c := ctx.Request.Context()
 
 	now := time.Now()
@@ -223,7 +213,6 @@ func (h *DashboardHandler) GetMonthlySummary(ctx *gin.Context) {
 
 	pipeline := mongo.Pipeline{
 		{{Key: "$match", Value: bson.M{
-			"clientId":    clientID,
 			"createdDate": bson.M{"$gte": twelveMonthsAgo},
 		}}},
 		{{Key: "$group", Value: bson.M{
@@ -252,7 +241,6 @@ func (h *DashboardHandler) GetMonthlySummary(ctx *gin.Context) {
 }
 
 func (h *DashboardHandler) GetGrossMargin(ctx *gin.Context) {
-	clientID := ctx.GetString(middlewares.ClientId)
 	c := ctx.Request.Context()
 
 	now := time.Now()
@@ -260,7 +248,6 @@ func (h *DashboardHandler) GetGrossMargin(ctx *gin.Context) {
 
 	pipeline := mongo.Pipeline{
 		{{Key: "$match", Value: bson.M{
-			"clientId":    clientID,
 			"createdDate": bson.M{"$gte": startOfMonth},
 		}}},
 		{{Key: "$unwind", Value: "$items"}},
@@ -317,14 +304,12 @@ func (h *DashboardHandler) GetGrossMargin(ctx *gin.Context) {
 }
 
 func (h *DashboardHandler) GetABCAnalysis(ctx *gin.Context) {
-	clientID := ctx.GetString(middlewares.ClientId)
 	c := ctx.Request.Context()
 
 	sixMonthsAgo := time.Now().AddDate(0, -6, 0)
 
 	pipeline := mongo.Pipeline{
 		{{Key: "$match", Value: bson.M{
-			"clientId":    clientID,
 			"createdDate": bson.M{"$gte": sixMonthsAgo},
 		}}},
 		{{Key: "$unwind", Value: "$items"}},
@@ -393,14 +378,12 @@ func (h *DashboardHandler) GetABCAnalysis(ctx *gin.Context) {
 }
 
 func (h *DashboardHandler) GetDeadStock(ctx *gin.Context) {
-	clientID := ctx.GetString(middlewares.ClientId)
 	c := ctx.Request.Context()
 
 	ninetyDaysAgo := time.Now().AddDate(0, 0, -90)
 
 	soldPipeline := mongo.Pipeline{
 		{{Key: "$match", Value: bson.M{
-			"clientId":    clientID,
 			"createdDate": bson.M{"$gte": ninetyDaysAgo},
 		}}},
 		{{Key: "$unwind", Value: "$items"}},
@@ -424,8 +407,7 @@ func (h *DashboardHandler) GetDeadStock(ctx *gin.Context) {
 	}
 
 	filter := bson.M{
-		"clientId": clientID,
-		"status":   "ACTIVE",
+		"status": "ACTIVE",
 	}
 	if len(soldIDs) > 0 {
 		filter["_id"] = bson.M{"$nin": soldIDs}
@@ -445,7 +427,7 @@ func (h *DashboardHandler) GetDeadStock(ctx *gin.Context) {
 	for _, p := range products {
 		pid := p["_id"]
 		stockPipeline := mongo.Pipeline{
-			{{Key: "$match", Value: bson.M{"productId": pid, "clientId": clientID, "quantity": bson.M{"$gt": 0}}}},
+			{{Key: "$match", Value: bson.M{"productId": pid, "quantity": bson.M{"$gt": 0}}}},
 			{{Key: "$group", Value: bson.M{"_id": nil, "totalStock": bson.M{"$sum": "$quantity"}}}},
 		}
 		stockCursor, _ := h.db.Collection("batches").Aggregate(c, stockPipeline)
@@ -475,14 +457,12 @@ func (h *DashboardHandler) GetDeadStock(ctx *gin.Context) {
 }
 
 func (h *DashboardHandler) GetRefillReminders(ctx *gin.Context) {
-	clientID := ctx.GetString(middlewares.ClientId)
 	c := ctx.Request.Context()
 
 	sixtyDaysAgo := time.Now().AddDate(0, 0, -60)
 
 	pipeline := mongo.Pipeline{
 		{{Key: "$match", Value: bson.M{
-			"clientId":    clientID,
 			"createdDate": bson.M{"$gte": sixtyDaysAgo},
 			"patientId":   bson.M{"$exists": true, "$ne": nil},
 		}}},

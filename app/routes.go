@@ -111,6 +111,7 @@ func (r Routes) StartGin() {
 		// Batches / Inventory
 		batches := auth.Group("/batches")
 		{
+			batches.GET("", batchHandler.GetAll)
 			batches.POST("", batchHandler.Create)
 			batches.GET("/product/:productId", batchHandler.GetByProductID)
 			batches.GET("/expiring", batchHandler.GetExpiringBatches)

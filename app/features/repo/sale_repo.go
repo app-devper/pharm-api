@@ -42,8 +42,8 @@ func (r *saleRepo) FindByID(ctx context.Context, id primitive.ObjectID) (*model.
 	return &sale, nil
 }
 
-func (r *saleRepo) FindByClientID(ctx context.Context, clientID string, page int, limit int) ([]model.Sale, int64, error) {
-	filter := bson.M{"clientId": clientID}
+func (r *saleRepo) FindAll(ctx context.Context, page int, limit int) ([]model.Sale, int64, error) {
+	filter := bson.M{}
 
 	total, err := r.col.CountDocuments(ctx, filter)
 	if err != nil {
@@ -90,9 +90,8 @@ func (r *saleRepo) FindByPatientID(ctx context.Context, patientID primitive.Obje
 	return sales, total, nil
 }
 
-func (r *saleRepo) FindByDateRange(ctx context.Context, clientID string, from time.Time, to time.Time) ([]model.Sale, error) {
+func (r *saleRepo) FindByDateRange(ctx context.Context, from time.Time, to time.Time) ([]model.Sale, error) {
 	filter := bson.M{
-		"clientId": clientID,
 		"createdDate": bson.M{
 			"$gte": from,
 			"$lte": to,
@@ -113,10 +112,9 @@ func (r *saleRepo) FindByDateRange(ctx context.Context, clientID string, from ti
 	return sales, nil
 }
 
-func (r *saleRepo) FindControlledSales(ctx context.Context, clientID string, classification model.DrugClassification, from time.Time, to time.Time) ([]model.Sale, error) {
+func (r *saleRepo) FindControlledSales(ctx context.Context, classification model.DrugClassification, from time.Time, to time.Time) ([]model.Sale, error) {
 	// Get product IDs matching the specific classification
 	productCursor, err := r.db.Collection("products").Find(ctx, bson.M{
-		"clientId":           clientID,
 		"drugClassification": string(classification),
 	}, options.Find().SetProjection(bson.M{"_id": 1}))
 	if err != nil {
@@ -139,7 +137,6 @@ func (r *saleRepo) FindControlledSales(ctx context.Context, clientID string, cla
 	}
 
 	filter := bson.M{
-		"clientId":        clientID,
 		"createdDate":     bson.M{"$gte": from, "$lte": to},
 		"items.productId": bson.M{"$in": productIDs},
 	}

@@ -21,10 +21,9 @@ func NewSettingHandler(db *mongo.Database) *SettingHandler {
 }
 
 func (h *SettingHandler) GetAll(ctx *gin.Context) {
-	clientID := ctx.GetString(middlewares.ClientId)
 	c := ctx.Request.Context()
 
-	cursor, err := h.db.Collection("settings").Find(c, bson.M{"clientId": clientID})
+	cursor, err := h.db.Collection("settings").Find(c, bson.M{})
 	if err != nil {
 		errs.Response(ctx, http.StatusInternalServerError, errs.New(errs.ErrInternal, err.Error()))
 		return
@@ -38,15 +37,14 @@ func (h *SettingHandler) GetAll(ctx *gin.Context) {
 }
 
 func (h *SettingHandler) GetByKey(ctx *gin.Context) {
-	clientID := ctx.GetString(middlewares.ClientId)
 	key := ctx.Param("key")
 	c := ctx.Request.Context()
 
 	var result bson.M
-	err := h.db.Collection("settings").FindOne(c, bson.M{"clientId": clientID, "key": key}).Decode(&result)
+	err := h.db.Collection("settings").FindOne(c, bson.M{"key": key}).Decode(&result)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			ctx.JSON(http.StatusOK, gin.H{"clientId": clientID, "key": key, "value": ""})
+			ctx.JSON(http.StatusOK, gin.H{"key": key, "value": ""})
 			return
 		}
 		errs.Response(ctx, http.StatusInternalServerError, errs.New(errs.ErrInternal, err.Error()))
@@ -57,7 +55,6 @@ func (h *SettingHandler) GetByKey(ctx *gin.Context) {
 }
 
 func (h *SettingHandler) Upsert(ctx *gin.Context) {
-	clientID := ctx.GetString(middlewares.ClientId)
 	updatedBy := ctx.GetString(middlewares.SessionId)
 	key := ctx.Param("key")
 
@@ -70,7 +67,7 @@ func (h *SettingHandler) Upsert(ctx *gin.Context) {
 	}
 
 	c := ctx.Request.Context()
-	filter := bson.M{"clientId": clientID, "key": key}
+	filter := bson.M{"key": key}
 	update := bson.M{
 		"$set": bson.M{
 			"value":       body.Value,
@@ -78,8 +75,7 @@ func (h *SettingHandler) Upsert(ctx *gin.Context) {
 			"updatedDate": time.Now(),
 		},
 		"$setOnInsert": bson.M{
-			"clientId": clientID,
-			"key":      key,
+			"key": key,
 		},
 	}
 

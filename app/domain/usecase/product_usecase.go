@@ -34,12 +34,12 @@ func (u *ProductUsecase) GetByID(ctx context.Context, id string) (*model.Product
 	return u.repo.FindByID(ctx, oid)
 }
 
-func (u *ProductUsecase) GetByClientID(ctx context.Context, clientID string, search string, page int, limit int) ([]model.Product, int64, error) {
-	return u.repo.FindByClientID(ctx, clientID, search, page, limit)
+func (u *ProductUsecase) GetAll(ctx context.Context, search string, page int, limit int) ([]model.Product, int64, error) {
+	return u.repo.FindAll(ctx, search, page, limit)
 }
 
-func (u *ProductUsecase) GetByBarcode(ctx context.Context, clientID string, barcode string) (*model.Product, error) {
-	return u.repo.FindByBarcode(ctx, clientID, barcode)
+func (u *ProductUsecase) GetByBarcode(ctx context.Context, barcode string) (*model.Product, error) {
+	return u.repo.FindByBarcode(ctx, barcode)
 }
 
 func (u *ProductUsecase) Update(ctx context.Context, product *model.Product, userID string) error {

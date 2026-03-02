@@ -28,7 +28,6 @@ func (h *PatientHandler) Create(ctx *gin.Context) {
 		return
 	}
 
-	clientID := ctx.GetString(middlewares.ClientId)
 	userID := ctx.GetString(middlewares.SessionId)
 
 	var dob time.Time
@@ -56,7 +55,6 @@ func (h *PatientHandler) Create(ctx *gin.Context) {
 	}
 
 	patient := &model.Patient{
-		ClientID:        clientID,
 		IDCard:          req.IDCard,
 		FirstName:       req.FirstName,
 		LastName:        req.LastName,
@@ -92,12 +90,11 @@ func (h *PatientHandler) GetByID(ctx *gin.Context) {
 }
 
 func (h *PatientHandler) GetAll(ctx *gin.Context) {
-	clientID := ctx.GetString(middlewares.ClientId)
 	search := ctx.Query("search")
 	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(ctx.DefaultQuery("limit", "20"))
 
-	patients, total, err := h.uc.GetByClientID(ctx, clientID, search, page, limit)
+	patients, total, err := h.uc.GetAll(ctx, search, page, limit)
 	if err != nil {
 		errs.Response(ctx, http.StatusInternalServerError, errs.New(errs.ErrInternal, err.Error()))
 		return
