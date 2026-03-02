@@ -61,6 +61,7 @@ func (r Routes) StartGin() {
 	dashboardHandler := api.NewDashboardHandler(resources.PharmDb)
 	reportHandler := api.NewReportHandler(resources.PharmDb)
 	settingHandler := api.NewSettingHandler(resources.PharmDb)
+	receiveHandler := api.NewReceiveHandler(resources.PharmDb, batchUC)
 
 	// API routes
 	v1 := app.Group("/api/v1")
@@ -143,6 +144,14 @@ func (r Routes) StartGin() {
 			reports.GET("/ky11", reportHandler.GetKY11) // ขายยาควบคุมพิเศษ
 			reports.GET("/ky12", reportHandler.GetKY12) // วัตถุออกฤทธิ์ฯ
 			reports.GET("/ky13", reportHandler.GetKY13) // ยาเสพติดให้โทษ ประเภท 3
+		}
+
+		// Receives (Goods Receipts)
+		receives := auth.Group("/receives")
+		{
+			receives.POST("", receiveHandler.Create)
+			receives.GET("", receiveHandler.GetAll)
+			receives.GET("/:id", receiveHandler.GetByID)
 		}
 
 		// Settings (Admin only)
