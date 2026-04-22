@@ -46,6 +46,7 @@ func (r *productRepo) FindAll(ctx context.Context, search string, page int, limi
 			{"tradeName": bson.M{"$regex": escaped, "$options": "i"}},
 			{"genericName": bson.M{"$regex": escaped, "$options": "i"}},
 			{"barcode": bson.M{"$regex": escaped, "$options": "i"}},
+			{"unitConversions.barcode": bson.M{"$regex": escaped, "$options": "i"}},
 		}
 	}
 
@@ -72,7 +73,11 @@ func (r *productRepo) FindAll(ctx context.Context, search string, page int, limi
 
 func (r *productRepo) FindByBarcode(ctx context.Context, barcode string) (*model.Product, error) {
 	var product model.Product
-	err := r.col.FindOne(ctx, bson.M{"barcode": barcode}).Decode(&product)
+	filter := bson.M{"$or": []bson.M{
+		{"barcode": barcode},
+		{"unitConversions.barcode": barcode},
+	}}
+	err := r.col.FindOne(ctx, filter).Decode(&product)
 	if err != nil {
 		return nil, err
 	}

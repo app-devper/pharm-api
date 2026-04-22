@@ -14,5 +14,4 @@ type SaleRepository interface {
 	FindAll(ctx context.Context, page int, limit int) ([]model.Sale, int64, error)
 	FindByPatientID(ctx context.Context, patientID primitive.ObjectID, page int, limit int) ([]model.Sale, int64, error)
 	FindByDateRange(ctx context.Context, from time.Time, to time.Time) ([]model.Sale, error)
-	FindControlledSales(ctx context.Context, classification model.DrugClassification, from time.Time, to time.Time) ([]model.Sale, error)
 }

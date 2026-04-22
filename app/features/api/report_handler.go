@@ -23,27 +23,27 @@ func NewReportHandler(db *mongo.Database) *ReportHandler {
 	return &ReportHandler{db: db}
 }
 
-// ข.ย.9 — บัญชีซื้อยา (Purchase/Receive ledger)
+// ข.ย.9 — บัญชีการซื้อยา
 func (h *ReportHandler) GetKY9(ctx *gin.Context) {
 	h.getReceiveReport(ctx, "ky9")
 }
 
-// ข.ย.10 — บัญชีขายยาอันตราย
+// ข.ย.10 — บัญชีการขายยาควบคุมพิเศษ
 func (h *ReportHandler) GetKY10(ctx *gin.Context) {
 	h.getSaleReport(ctx, "ky10")
 }
 
-// ข.ย.11 — บัญชีขายยาควบคุมพิเศษ
+// ข.ย.11 — บัญชีการขายยาอันตราย
 func (h *ReportHandler) GetKY11(ctx *gin.Context) {
 	h.getSaleReport(ctx, "ky11")
 }
 
-// ข.ย.12 — บัญชีรับ-จ่ายวัตถุออกฤทธิ์ฯ
+// ข.ย.12 — บัญชีการขายยาตามใบสั่งของผู้ประกอบวิชาชีพฯ
 func (h *ReportHandler) GetKY12(ctx *gin.Context) {
 	h.getSaleReport(ctx, "ky12")
 }
 
-// ข.ย.13 — บัญชีรับ-จ่ายยาเสพติดให้โทษ ประเภท 3
+// ข.ย.13 — รายงานการขายยาตามที่เลขาธิการคณะกรรมการอาหารและยากำหนด
 func (h *ReportHandler) GetKY13(ctx *gin.Context) {
 	h.getSaleReport(ctx, "ky13")
 }
@@ -65,6 +65,8 @@ type receiveRow struct {
 }
 
 func (h *ReportHandler) getSaleReport(ctx *gin.Context, reportKey string) {
+	// Note: Reports are filtered by product.reportTypes array, not by drugClassification
+	// This allows flexible configuration - any product can be assigned to any report type
 	c := ctx.Request.Context()
 
 	fromStr := ctx.DefaultQuery("from", time.Now().AddDate(0, -1, 0).Format("2006-01-02"))
@@ -165,37 +167,46 @@ func (h *ReportHandler) writeCSV(ctx *gin.Context, sales []model.Sale, reportKey
 	defer w.Flush()
 
 	switch reportKey {
+	case "ky10":
+		w.Write([]string{"ลำดับที่", "วัน/เดือน/ปี ที่ขาย", "ชื่อยา", "เลขที่หรืออักษรของครั้งที่ผลิต (Lot No.)", "จำนวน/ปริมาณที่ขาย", "ชื่อและสกุลของผู้ซื้อ", "ลายมือชื่อผู้มีหน้าที่ปฏิบัติการ", "หมายเหตุ"})
 	case "ky11":
-		w.Write([]string{"วันที่", "เลขที่ใบเสร็จ", "ชื่อยา", "จำนวน", "หน่วย", "ชื่อผู้ซื้อ", "ชื่อผู้สั่งจ่าย", "เภสัชกร"})
+		w.Write([]string{"ลำดับที่", "วัน/เดือน/ปี ที่ขาย", "ชื่อยา", "เลขที่หรืออักษรของครั้งที่ผลิต (Lot No.)", "จำนวน/ปริมาณที่ขาย", "ชื่อและสกุลของผู้ซื้อ", "ลายมือชื่อผู้มีหน้าที่ปฏิบัติการ", "หมายเหตุ"})
 	case "ky12":
-		w.Write([]string{"วันที่", "เลขที่ใบเสร็จ", "ชื่อยา", "จำนวน", "หน่วย", "ชื่อผู้ซื้อ", "เลขบัตรประชาชน", "เภสัชกร"})
+		w.Write([]string{"ลำดับที่", "วัน/เดือน/ปี ที่ขาย", "ชื่อยา", "เลขที่หรืออักษรของครั้งที่ผลิต (Lot No.)", "จำนวน/ปริมาณที่ขาย", "ชื่อ-สกุลผู้ใช้ยา", "อายุผู้ใช้ยา", "ที่อยู่ผู้ใช้ยา", "ชื่อและสกุลผู้สั่งยา", "สถานที่ทำงานของผู้สั่งยา", "ลายมือชื่อผู้มีหน้าที่ปฏิบัติการ", "หมายเหตุ"})
+	case "ky13":
+		w.Write([]string{"ลำดับที่", "วัน/เดือน/ปี ที่ขาย", "ชื่อยา", "เลขทะเบียนตำรับยา", "เลขที่หรืออักษรของครั้งที่ผลิต (Lot No.)", "จำนวน/ปริมาณที่ขาย", "ชื่อผู้ซื้อหรือชื่อสถานพยาบาล/ร้านยา", "ที่อยู่ผู้ซื้อ", "เลขที่ใบอนุญาตผู้ซื้อ", "หมายเหตุ"})
 	default:
-		w.Write([]string{"วันที่", "เลขที่ใบเสร็จ", "ชื่อยา", "จำนวน", "หน่วย", "เภสัชกร"})
+		w.Write([]string{"ลำดับที่", "วันที่", "ชื่อยา", "จำนวน", "หน่วย", "เภสัชกร"})
 	}
 
+	sequence := 1
 	for _, sale := range sales {
 		for _, item := range sale.Items {
 			row := []string{
-				sale.CreatedDate.Format("02/01/2006"),
-				sale.ReceiptNumber,
-				item.TradeName,
-				fmt.Sprintf("%d", item.Quantity),
-				item.Unit,
+				fmt.Sprintf("%d", sequence),           // ลำดับที่
+				sale.CreatedDate.Format("02/01/2006"), // วัน/เดือน/ปี
+				item.TradeName,                        // ชื่อยา
 			}
 			switch reportKey {
+			case "ky10":
+				row = append(row, item.LotNumber, fmt.Sprintf("%d", item.Quantity), sale.BuyerName, sale.PharmacistName, sale.Notes)
 			case "ky11":
-				row = append(row, sale.BuyerName, sale.PrescriberName, sale.PharmacistName)
+				row = append(row, item.LotNumber, fmt.Sprintf("%d", item.Quantity), sale.BuyerName, sale.PharmacistName, sale.Notes)
 			case "ky12":
-				row = append(row, sale.BuyerName, sale.BuyerIDCard, sale.PharmacistName)
+				row = append(row, item.LotNumber, fmt.Sprintf("%d", item.Quantity), sale.BuyerName, sale.BuyerAge, sale.BuyerAddress, sale.PrescriberName, sale.PrescriberWorkplace, sale.PharmacistName, sale.Notes)
+			case "ky13":
+				row = append(row, sale.DrugRegistration, item.LotNumber, fmt.Sprintf("%d", item.Quantity), sale.BuyerName, sale.BuyerAddress, sale.BuyerLicense, sale.Notes)
 			default:
-				row = append(row, sale.PharmacistName)
+				row = append(row, fmt.Sprintf("%d", item.Quantity), item.Unit, sale.PharmacistName)
 			}
 			w.Write(row)
+			sequence++
 		}
 	}
 }
 
 // getReceiveReport returns batches received for products that have the given reportKey in their reportTypes
+// Note: This is configuration-based, not based on drugClassification - any product can be configured for any report
 func (h *ReportHandler) getReceiveReport(ctx *gin.Context, reportKey string) {
 	c := ctx.Request.Context()
 
@@ -316,19 +327,22 @@ func (h *ReportHandler) writeReceiveCSV(ctx *gin.Context, rows []receiveRow, rep
 	w := csv.NewWriter(ctx.Writer)
 	defer w.Flush()
 
-	w.Write([]string{"วันที่รับ", "ชื่อการค้า", "ชื่อสามัญ", "Lot Number", "จำนวน", "หน่วย", "ราคาทุน", "แหล่งที่ซื้อ", "วันหมดอายุ"})
+	// ข.ย. 9 - บัญชีการซื้อยา
+	w.Write([]string{"ลำดับที่", "วัน/เดือน/ปี ที่ซื้อ", "ชื่อและที่อยู่ของผู้ขาย", "ชื่อยา", "เลขที่หรืออักษรของครั้งที่ผลิต (Lot No.)", "จำนวน/ปริมาณที่ซื้อ", "ลายมือชื่อผู้มีหน้าที่ปฏิบัติการ", "หมายเหตุ"})
+
+	sequence := 1
 	for _, r := range rows {
 		w.Write([]string{
-			r.ReceivedAt.Format("02/01/2006"),
-			r.TradeName,
-			r.GenericName,
-			r.LotNumber,
-			fmt.Sprintf("%d", r.Quantity),
-			r.Unit,
-			fmt.Sprintf("%.2f", r.CostPrice),
-			r.SupplierName,
-			r.ExpiryDate.Format("02/01/2006"),
+			fmt.Sprintf("%d", sequence),       // ลำดับที่
+			r.ReceivedAt.Format("02/01/2006"), // วัน/เดือน/ปี ที่ซื้อ
+			r.SupplierName,                    // ชื่อและที่อยู่ของผู้ขาย
+			r.TradeName,                       // ชื่อยา
+			r.LotNumber,                       // เลขที่หรืออักษรของครั้งที่ผลิต (Lot No.)
+			fmt.Sprintf("%d", r.Quantity),     // จำนวน/ปริมาณที่ซื้อ
+			"N/A",                             // ลายมือชื่อผู้มีหน้าที่ปฏิบัติการ (TODO: Add pharmacist signature)
+			"",                                // หมายเหตุ
 		})
+		sequence++
 	}
 }
 

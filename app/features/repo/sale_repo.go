@@ -112,49 +112,6 @@ func (r *saleRepo) FindByDateRange(ctx context.Context, from time.Time, to time.
 	return sales, nil
 }
 
-func (r *saleRepo) FindControlledSales(ctx context.Context, classification model.DrugClassification, from time.Time, to time.Time) ([]model.Sale, error) {
-	// Get product IDs matching the specific classification
-	productCursor, err := r.db.Collection("products").Find(ctx, bson.M{
-		"drugClassification": string(classification),
-	}, options.Find().SetProjection(bson.M{"_id": 1}))
-	if err != nil {
-		return nil, err
-	}
-	defer productCursor.Close(ctx)
-
-	var products []bson.M
-	if err := productCursor.All(ctx, &products); err != nil {
-		return nil, err
-	}
-
-	if len(products) == 0 {
-		return []model.Sale{}, nil
-	}
-
-	var productIDs []interface{}
-	for _, p := range products {
-		productIDs = append(productIDs, p["_id"])
-	}
-
-	filter := bson.M{
-		"createdDate":     bson.M{"$gte": from, "$lte": to},
-		"items.productId": bson.M{"$in": productIDs},
-	}
-	opts := options.Find().SetSort(bson.D{{Key: "createdDate", Value: -1}})
-
-	cursor, err := r.col.Find(ctx, filter, opts)
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
-
-	var sales []model.Sale
-	if err := cursor.All(ctx, &sales); err != nil {
-		return nil, err
-	}
-	return sales, nil
-}
-
 func (r *saleRepo) generateReceiptNumber(ctx context.Context) string {
 	today := time.Now().Format("20060102")
 	key := "RCP-" + today

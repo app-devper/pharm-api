@@ -60,13 +60,32 @@ func (h *ReceiveHandler) Create(ctx *gin.Context) {
 			return
 		}
 
-		// Lookup product trade name
-		var product bson.M
+		// Lookup product for trade name and unit conversions
+		var product model.Product
 		err = h.db.Collection("products").FindOne(c, bson.M{"_id": productOID}).Decode(&product)
 		tradeName := ""
 		if err == nil {
-			if tn, ok := product["tradeName"].(string); ok {
-				tradeName = tn
+			tradeName = product.TradeName
+		}
+
+		// Apply unit conversion: convert to base unit quantity
+		baseQty := item.Quantity
+		baseCost := item.CostPrice
+		if item.ReceiveUnit != "" && item.ReceiveUnit != product.Unit {
+			found := false
+			for _, uc := range product.UnitConversions {
+				if uc.UnitName == item.ReceiveUnit {
+					baseQty = item.Quantity * uc.ConversionFactor
+					if uc.ConversionFactor > 0 {
+						baseCost = item.CostPrice / float64(uc.ConversionFactor)
+					}
+					found = true
+					break
+				}
+			}
+			if !found {
+				errs.Response(ctx, http.StatusBadRequest, errs.New(errs.ErrBadRequest, fmt.Sprintf("item %d: unknown receive unit '%s'", i+1, item.ReceiveUnit)))
+				return
 			}
 		}
 
@@ -83,8 +102,8 @@ func (h *ReceiveHandler) Create(ctx *gin.Context) {
 				ProductID:    productOID,
 				LotNumber:    item.LotNumber,
 				ExpiryDate:   expiryDate,
-				Quantity:     item.Quantity,
-				CostPrice:    item.CostPrice,
+				Quantity:     baseQty,
+				CostPrice:    baseCost,
 				SupplierName: req.SupplierName,
 			},
 		})
@@ -92,35 +111,52 @@ func (h *ReceiveHandler) Create(ctx *gin.Context) {
 		totalCost += item.CostPrice * float64(item.Quantity)
 	}
 
-	// Phase 2: All validated — now write batches
-	items := make([]model.GoodsReceiptItem, 0, len(validated))
-	for i, v := range validated {
-		_, err := h.batchUC.ReceiveGoods(c, v.batch, userID)
-		if err != nil {
-			errs.Response(ctx, http.StatusInternalServerError, errs.New(errs.ErrInternal, fmt.Sprintf("item %d: failed to create batch: %s", i+1, err.Error())))
-			return
-		}
-		items = append(items, v.receiptItem)
-	}
-
-	// Phase 3: Insert goods receipt
-	receipt := model.GoodsReceipt{
-		ReceiptNumber: h.generateReceiptNumber(c),
-		SupplierName:  req.SupplierName,
-		Items:         items,
-		TotalItems:    len(items),
-		TotalCost:     totalCost,
-		Notes:         req.Notes,
-		CreatedBy:     userID,
-		CreatedDate:   time.Now(),
-	}
-
-	result, err := h.db.Collection("goods_receipts").InsertOne(c, receipt)
+	// Phase 2: All validated — now write batches and receipt in a transaction
+	session, err := h.db.Client().StartSession()
 	if err != nil {
-		errs.Response(ctx, http.StatusInternalServerError, errs.New(errs.ErrInternal, err.Error()))
+		errs.Response(ctx, http.StatusInternalServerError, errs.New(errs.ErrInternal, "failed to start transaction"))
 		return
 	}
-	receipt.ID = result.InsertedID.(primitive.ObjectID)
+	defer session.EndSession(c)
+
+	var receipt *model.GoodsReceipt
+	result, txErr := session.WithTransaction(c, func(sessCtx mongo.SessionContext) (interface{}, error) {
+		items := make([]model.GoodsReceiptItem, 0, len(validated))
+		for i, v := range validated {
+			_, err := h.batchUC.ReceiveGoods(sessCtx, v.batch, userID)
+			if err != nil {
+				return nil, fmt.Errorf("item %d: failed to create batch: %s", i+1, err.Error())
+			}
+			items = append(items, v.receiptItem)
+		}
+
+		// Insert goods receipt
+		receipt := model.GoodsReceipt{
+			ReceiptNumber: h.generateReceiptNumber(sessCtx),
+			SupplierName:  req.SupplierName,
+			Items:         items,
+			TotalItems:    len(items),
+			TotalCost:     totalCost,
+			Notes:         req.Notes,
+			CreatedBy:     userID,
+			CreatedDate:   time.Now(),
+		}
+
+		insertResult, err := h.db.Collection("goods_receipts").InsertOne(sessCtx, receipt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create goods receipt: %s", err.Error())
+		}
+		receipt.ID = insertResult.InsertedID.(primitive.ObjectID)
+
+		return receipt, nil
+	})
+
+	if txErr != nil {
+		errs.Response(ctx, http.StatusInternalServerError, errs.New(errs.ErrInternal, txErr.Error()))
+		return
+	}
+
+	receipt = result.(*model.GoodsReceipt)
 
 	ctx.JSON(http.StatusCreated, receipt)
 }

@@ -24,6 +24,23 @@ type AllergyWarning struct {
 	Severity string `json:"severity"`
 }
 
+// Check if product requires controlled drug compliance based on report types
+func requiresControlledDrugCompliance(product *model.Product) bool {
+	controlReportTypes := map[string]bool{
+		"ky10": true, // ข.ย. 10 - บัญชีการขายยาควบคุมพิเศษ
+		"ky11": true, // ข.ย. 11 - บัญชีการขายยาอันตราย
+		"ky12": true, // ข.ย. 12 - บัญชีการขายยาตามใบสั่งของผู้ประกอบวิชาชีพฯ
+		"ky13": true, // ข.ย. 13 - รายงานการขายยาตามที่เลขาธิการคณะกรรมการอาหารและยากำหนด
+	}
+
+	for _, reportType := range product.ReportTypes {
+		if controlReportTypes[reportType] {
+			return true
+		}
+	}
+	return false
+}
+
 type SaleUsecase struct {
 	saleRepo    repository.SaleRepository
 	productRepo repository.ProductRepository
@@ -62,7 +79,27 @@ func (u *SaleUsecase) CreateSale(ctx context.Context, sale *model.Sale, userID s
 		}
 
 		sale.Items[i].TradeName = product.TradeName
-		sale.Items[i].Unit = product.Unit
+
+		// Handle unit conversion
+		sellingUnit := sale.Items[i].Unit
+		if sellingUnit == "" {
+			sellingUnit = product.Unit
+		}
+		sale.Items[i].Unit = sellingUnit
+
+		// Set unit price based on selling unit
+		if sellingUnit != product.Unit {
+			// Find unit-specific price
+			for _, uc := range product.UnitConversions {
+				if uc.UnitName == sellingUnit {
+					if sale.Items[i].UnitPrice == 0 {
+						sale.Items[i].UnitPrice = uc.SellingPrice
+					}
+					break
+				}
+			}
+		}
+
 		if sale.Items[i].UnitPrice == 0 {
 			sale.Items[i].UnitPrice = product.SellingPrice
 		}
@@ -70,9 +107,7 @@ func (u *SaleUsecase) CreateSale(ctx context.Context, sale *model.Sale, userID s
 
 		subTotal += sale.Items[i].TotalPrice
 
-		if product.DrugClassification == model.DrugControlled ||
-			product.DrugClassification == model.DrugPsycho ||
-			product.DrugClassification == model.DrugNarcotic {
+		if requiresControlledDrugCompliance(product) {
 			hasControlled = true
 		}
 	}
@@ -113,12 +148,28 @@ func (u *SaleUsecase) CreateSale(ctx context.Context, sale *model.Sale, userID s
 	_, txErr := session.WithTransaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
 		// FEFO stock deduction: deduct from batches (first expired, first out)
 		for i, item := range sale.Items {
+			product, err := u.productRepo.FindByID(sessCtx, item.ProductID)
+			if err != nil {
+				return nil, errors.New("product not found: " + item.ProductID.Hex())
+			}
+
+			// Calculate base quantity for stock deduction
+			baseQuantity := item.Quantity
+			if item.Unit != "" && item.Unit != product.Unit {
+				for _, uc := range product.UnitConversions {
+					if uc.UnitName == item.Unit {
+						baseQuantity = item.Quantity * uc.ConversionFactor
+						break
+					}
+				}
+			}
+
 			batches, err := u.batchRepo.FindByProductIDFEFO(sessCtx, item.ProductID)
 			if err != nil {
 				return nil, errors.New("failed to find batches for product: " + item.ProductID.Hex())
 			}
 
-			remaining := item.Quantity
+			remaining := baseQuantity
 			for _, batch := range batches {
 				if remaining <= 0 {
 					break
@@ -132,7 +183,7 @@ func (u *SaleUsecase) CreateSale(ctx context.Context, sale *model.Sale, userID s
 					return nil, errors.New("failed to update batch quantity")
 				}
 				// Set the batch info on the first matching batch for the sale item
-				if remaining == item.Quantity {
+				if remaining == baseQuantity {
 					sale.Items[i].BatchID = batch.ID
 					sale.Items[i].LotNumber = batch.LotNumber
 				}

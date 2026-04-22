@@ -59,6 +59,7 @@ func (h *SaleHandler) Create(ctx *gin.Context) {
 			ProductID: productOID,
 			BatchID:   batchOID,
 			Quantity:  item.Quantity,
+			Unit:      item.Unit,
 			UnitPrice: item.UnitPrice,
 			Discount:  item.Discount,
 		}
@@ -71,17 +72,23 @@ func (h *SaleHandler) Create(ctx *gin.Context) {
 	}
 
 	sale := &model.Sale{
-		PatientID:      patientID,
-		Items:          items,
-		Discount:       req.Discount,
-		PaymentMethod:  pm,
-		AmountPaid:     req.AmountPaid,
-		PharmacistID:   req.PharmacistID,
-		PharmacistName: req.PharmacistName,
-		BuyerName:      req.BuyerName,
-		BuyerIDCard:    req.BuyerIDCard,
-		PrescriberName: req.PrescriberName,
-		Notes:          req.Notes,
+		PatientID:           patientID,
+		Items:               items,
+		Discount:            req.Discount,
+		PaymentMethod:       pm,
+		AmountPaid:          req.AmountPaid,
+		PharmacistID:        req.PharmacistID,
+		PharmacistName:      req.PharmacistName,
+		BuyerName:           req.BuyerName,
+		BuyerIDCard:         req.BuyerIDCard,
+		BuyerAddress:        req.BuyerAddress,
+		BuyerAge:            req.BuyerAge,
+		BuyerLicense:        req.BuyerLicense,
+		PrescriberName:      req.PrescriberName,
+		PrescriberWorkplace: req.PrescriberWorkplace,
+		PrescriptionNo:      req.PrescriptionNo,
+		DrugRegistration:    req.DrugRegistration,
+		Notes:               req.Notes,
 	}
 
 	result, err := h.uc.CreateSale(ctx, sale, userID)

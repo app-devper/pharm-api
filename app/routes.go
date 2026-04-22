@@ -1,8 +1,10 @@
 package app
 
 import (
+	"context"
 	"log"
 	"os"
+	"pharmacy-pos/api/app/domain/model"
 	"pharmacy-pos/api/app/domain/usecase"
 	"pharmacy-pos/api/app/features/api"
 	"pharmacy-pos/api/app/features/repo"
@@ -11,7 +13,19 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
+
+// Helper function to check if a feature is enabled
+func isFeatureEnabled(db *mongo.Database, key string) bool {
+	var setting model.Setting
+	err := db.Collection("settings").FindOne(context.Background(), bson.M{"key": key}).Decode(&setting)
+	if err != nil {
+		return false // Default to disabled if setting not found
+	}
+	return setting.Value == "true"
+}
 
 type Routes struct{}
 
@@ -89,14 +103,18 @@ func (r Routes) StartGin() {
 			products.DELETE("/:id", productHandler.Delete)
 		}
 
-		// Patients
-		patients := auth.Group("/patients")
-		{
-			patients.POST("", patientHandler.Create)
-			patients.GET("", patientHandler.GetAll)
-			patients.GET("/:id", patientHandler.GetByID)
-			patients.PUT("/:id", patientHandler.Update)
-			patients.DELETE("/:id", patientHandler.Delete)
+		// Patients (feature toggle controlled)
+		if isFeatureEnabled(resources.PharmDb, "patient_feature_enabled") {
+			patients := auth.Group("/patients")
+			{
+				patients.POST("", patientHandler.Create)
+				patients.GET("", patientHandler.GetAll)
+				patients.GET("/:id", patientHandler.GetByID)
+				patients.PUT("/:id", patientHandler.Update)
+				patients.DELETE("/:id", patientHandler.Delete)
+			}
+			// Patient history
+			auth.GET("/patients/:id/history", saleHandler.GetPatientHistory)
 		}
 
 		// Sales
@@ -163,9 +181,6 @@ func (r Routes) StartGin() {
 			settings.GET("/:key", settingHandler.GetByKey)
 			settings.PUT("/:key", settingHandler.Upsert)
 		}
-
-		// Patient history
-		auth.GET("/patients/:id/history", saleHandler.GetPatientHistory)
 	}
 
 	app.NoRoute(middlewares.NoRoute())

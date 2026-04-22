@@ -29,23 +29,34 @@ func (h *ProductHandler) Create(ctx *gin.Context) {
 
 	userID := ctx.GetString(middlewares.SessionId)
 
+	var conversions []model.UnitConversion
+	for _, uc := range req.UnitConversions {
+		conversions = append(conversions, model.UnitConversion{
+			UnitName:         uc.UnitName,
+			ConversionFactor: uc.ConversionFactor,
+			Barcode:          uc.Barcode,
+			SellingPrice:     uc.SellingPrice,
+			CostPrice:        uc.CostPrice,
+		})
+	}
+
 	product := &model.Product{
-		Barcode:            req.Barcode,
-		TradeName:          req.TradeName,
-		GenericName:        req.GenericName,
-		DrugClassification: model.DrugClassification(req.DrugClassification),
-		Category:           req.Category,
-		Dosage:             req.Dosage,
-		Unit:               req.Unit,
-		CostPrice:          req.CostPrice,
-		SellingPrice:       req.SellingPrice,
-		MinStock:           req.MinStock,
-		Description:        req.Description,
-		SideEffects:        req.SideEffects,
-		Contraindications:  req.Contraindications,
-		StorageCondition:   req.StorageCondition,
-		Interactions:       req.Interactions,
-		ReportTypes:        req.ReportTypes,
+		Barcode:           req.Barcode,
+		TradeName:         req.TradeName,
+		GenericName:       req.GenericName,
+		Category:          req.Category,
+		Dosage:            req.Dosage,
+		Unit:              req.Unit,
+		CostPrice:         req.CostPrice,
+		SellingPrice:      req.SellingPrice,
+		MinStock:          req.MinStock,
+		Description:       req.Description,
+		SideEffects:       req.SideEffects,
+		Contraindications: req.Contraindications,
+		StorageCondition:  req.StorageCondition,
+		UnitConversions:   conversions,
+		Interactions:      req.Interactions,
+		ReportTypes:       req.ReportTypes,
 	}
 
 	result, err := h.uc.Create(ctx, product, userID)
@@ -119,9 +130,6 @@ func (h *ProductHandler) Update(ctx *gin.Context) {
 	if req.GenericName != "" {
 		existing.GenericName = req.GenericName
 	}
-	if req.DrugClassification != "" {
-		existing.DrugClassification = model.DrugClassification(req.DrugClassification)
-	}
 	if req.Category != "" {
 		existing.Category = req.Category
 	}
@@ -151,6 +159,19 @@ func (h *ProductHandler) Update(ctx *gin.Context) {
 	}
 	if req.StorageCondition != "" {
 		existing.StorageCondition = req.StorageCondition
+	}
+	if req.UnitConversions != nil {
+		var conversions []model.UnitConversion
+		for _, uc := range req.UnitConversions {
+			conversions = append(conversions, model.UnitConversion{
+				UnitName:         uc.UnitName,
+				ConversionFactor: uc.ConversionFactor,
+				Barcode:          uc.Barcode,
+				SellingPrice:     uc.SellingPrice,
+				CostPrice:        uc.CostPrice,
+			})
+		}
+		existing.UnitConversions = conversions
 	}
 	if req.Interactions != nil {
 		existing.Interactions = req.Interactions
